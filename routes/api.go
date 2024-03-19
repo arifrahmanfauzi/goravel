@@ -24,6 +24,7 @@ func Api() {
 	facades.Route().Get("/drops", controllers.NewDropController().Index)
 	facades.Route().Patch("/drops/{id}", controllers.NewDropController().Update)
 	facades.Route().Delete("/drops/{id}", controllers.NewDropController().Delete)
+	facades.Route().Post("/invoice-log", controllers.NewInvoiceLogController().Create)
 	facades.Route().Patch("/invoice-log/{id}", controllers.NewInvoiceLogController().Update)
 	facades.Route().Get("/invoice-log/{id}", controllers.NewInvoiceLogController().FindById)
 	facades.Route().Delete("/invoice-log/{id}", controllers.NewInvoiceLogController().Delete)

@@ -34,6 +34,12 @@ func NewInvoiceLogRepository() *InvoiceLogRepository {
 	}
 }
 
+func (i *InvoiceLogRepository) Create(model interface{}) error {
+	//ctx := context.Background()
+	//var InvoiceLogs *models.InvoiceLog
+	//i.collection.InsertOne(ctx, model)
+	return nil
+}
 func (i *InvoiceLogRepository) GetAll(Page int64, PageSize int64) ([]*models.InvoiceLog, int64, int64, error) {
 	ctx := context.Background()
 	// Calculate the number of documents to skip

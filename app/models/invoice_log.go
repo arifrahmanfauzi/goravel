@@ -1,13 +1,18 @@
 package models
 
-import "go.mongodb.org/mongo-driver/mongo"
+import (
+	"go.mongodb.org/mongo-driver/mongo"
+	"time"
+)
 
 type InvoiceLog struct {
-	ID            string `bson:"_id,omitempty"`
-	InvoiceId     string `bson:"invoiceId,omitempty"`
-	InvoiceNumber string `bson:"invoiceNumber,omitempty"`
-	AdminEmail    string `bson:"adminEmail,omitempty"`
-	Description   string `bson:"description,omitempty"`
+	ID            string    `bson:"_id,omitempty"`
+	InvoiceId     string    `bson:"invoiceId,omitempty"`
+	InvoiceNumber string    `bson:"invoiceNumber,omitempty"`
+	AdminEmail    string    `bson:"adminEmail,omitempty"`
+	Description   string    `bson:"description,omitempty"`
+	CreatedAt     time.Time `bson:"created_at,omitempty"`
+	UpdatedAt     time.Time `bson:"updated_at,omitempty"`
 }
 
 func (i *InvoiceLog) CollectionName() string {
