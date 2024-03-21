@@ -6,7 +6,7 @@ import (
 )
 
 type InvoiceLog struct {
-	ID            string    `bson:"_id,omitempty"`
+	ID            string    `bson:"_id,omitempty" json:"_id"`
 	InvoiceId     string    `bson:"invoiceId,omitempty"`
 	InvoiceNumber string    `bson:"invoiceNumber,omitempty"`
 	AdminEmail    string    `bson:"adminEmail,omitempty"`

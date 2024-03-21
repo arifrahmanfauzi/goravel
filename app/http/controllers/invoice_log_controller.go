@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/goravel/framework/contracts/http"
 	"github.com/goravel/framework/facades"
-	"github.com/goravel/framework/support/debug"
 	"goravel/app/models"
 	"goravel/app/repositories"
 	"goravel/app/transformers"
@@ -12,11 +11,13 @@ import (
 
 type InvoiceLog struct {
 	//Dependent services
+	IR *repositories.InvoiceLogRepository
 }
 
 func NewInvoiceLogController() *InvoiceLog {
 	return &InvoiceLog{
 		//Inject services
+		IR: repositories.NewInvoiceLogRepository(),
 	}
 }
 
@@ -25,13 +26,21 @@ func (r *InvoiceLog) Create(ctx http.Context) http.Response {
 	err := ctx.Request().Bind(&InvoiceLogs)
 	if err != nil {
 		facades.Log().Error(err)
-		return nil
+		return ctx.Response().Json(http.StatusBadRequest, http.Json{
+			"message": err,
+		})
 	}
-	debug.Dump(InvoiceLogs)
-	//facades.Log().Info(InvoiceLog)
+	result, err := r.IR.Create(&InvoiceLogs)
+	if err != nil {
+		facades.Log().Error(err)
+		return ctx.Response().Json(http.StatusBadRequest, http.Json{
+			"message": err,
+		})
+	}
 	return ctx.Response().Json(http.StatusOK, http.Json{
 		"status": "OK",
 		"data":   InvoiceLogs,
+		"raw":    result,
 	})
 }
 func (r *InvoiceLog) Index(ctx http.Context) http.Response {

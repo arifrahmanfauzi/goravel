@@ -34,11 +34,17 @@ func NewInvoiceLogRepository() *InvoiceLogRepository {
 	}
 }
 
-func (i *InvoiceLogRepository) Create(model interface{}) error {
-	//ctx := context.Background()
-	//var InvoiceLogs *models.InvoiceLog
-	//i.collection.InsertOne(ctx, model)
-	return nil
+func (i *InvoiceLogRepository) Create(model *models.InvoiceLog) (*mongo.InsertOneResult, error) {
+	ctx := context.Background()
+	model.CreatedAt = time.Now()
+	model.UpdatedAt = time.Now()
+	result, err := i.collection.InsertOne(ctx, model)
+	if err != nil {
+		facades.Log().Error(err)
+		return nil, err
+	}
+	model.ID = result.InsertedID.(primitive.ObjectID).Hex()
+	return result, nil
 }
 func (i *InvoiceLogRepository) GetAll(Page int64, PageSize int64) ([]*models.InvoiceLog, int64, int64, error) {
 	ctx := context.Background()
