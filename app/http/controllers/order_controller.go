@@ -10,11 +10,13 @@ import (
 
 type OrderController struct {
 	//Dependent services
+	Repositories *repositories.OrderRepository
 }
 
 func NewOrderController() *OrderController {
 	return &OrderController{
 		//Inject services
+		Repositories: repositories.NewOrderRepository(),
 	}
 }
 
@@ -22,11 +24,8 @@ func (r *OrderController) Index(ctx http.Context) http.Response {
 	return nil
 }
 func (r OrderController) GetAll(ctx http.Context) http.Response {
-	//clientOptions := options.Client().ApplyURI(facades.Config().GetString("DB_STRING", ""))
-	// Connect to MongoDB
-	//client, err := mongo.Connect(context.Background(), clientOptions)
 	client, err := mongodb.Init()
-	orderRepository := repositories.NewOrderRepository(client)
+	orderRepository := repositories.NewOrderRepository()
 	if err != nil {
 		facades.Log().Error(err)
 	}

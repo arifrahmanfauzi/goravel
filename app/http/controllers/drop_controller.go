@@ -9,11 +9,13 @@ import (
 
 type DropController struct {
 	//Dependent services
+	Repositories *repositories.DropRepository
 }
 
 func NewDropController() *DropController {
 	return &DropController{
 		//Inject services
+		Repositories: repositories.NewDropRepository(),
 	}
 }
 
@@ -49,8 +51,11 @@ func (r *DropController) Update(ctx http.Context) http.Response {
 	err := ctx.Request().Bind(&drop)
 	if err != nil {
 		facades.Log().Error(err)
+		return ctx.Response().Json(http.StatusInternalServerError, http.Json{
+			"status": "Failed",
+			"data":   err,
+		})
 	}
-	facades.Log().Info(drop)
 	dropRepository.Update(id, drop)
 	return ctx.Response().Json(http.StatusOK, http.Json{
 		"status": "OK",
@@ -79,4 +84,29 @@ func (r *DropController) Delete(ctx http.Context) http.Response {
 		"message": "No record has been deleted!",
 	})
 
+}
+
+func (r *DropController) Find(ctx http.Context) http.Response {
+	page := ctx.Request().QueryInt64("page", 1)
+	res, total, totalPage, err := r.Repositories.FindByTripNumber(ctx.Request().Route("id"), page, 15)
+	if err != nil {
+		facades.Log().Error(err)
+		return ctx.Response().Json(http.StatusInternalServerError, http.Json{
+			"status":  "ERROR",
+			"message": err,
+		})
+	}
+	return ctx.Response().Json(http.StatusOK, transformers.Response{
+		Status: "OK",
+		Data:   res,
+		Meta: transformers.Meta{
+			Pagination: transformers.Pagination{
+				Total:       total,
+				Count:       15,
+				PerPage:     15,
+				CurrentPage: page,
+				TotalPages:  totalPage,
+			},
+		},
+	})
 }

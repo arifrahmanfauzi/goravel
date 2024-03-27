@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"github.com/goravel/framework/facades"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -84,7 +83,6 @@ func (i *InvoiceLogRepository) GetAll(Page int64, PageSize int64) ([]*models.Inv
 	}
 	return InvoiceLog, totalRecord, totalPage, nil
 }
-
 func (i *InvoiceLogRepository) FindById(Id string) (*models.InvoiceLog, error) {
 	var invoiceLog models.InvoiceLog
 	ID, err := primitive.ObjectIDFromHex(Id)
@@ -94,12 +92,10 @@ func (i *InvoiceLogRepository) FindById(Id string) (*models.InvoiceLog, error) {
 	}
 	return &invoiceLog, err
 }
-
 func (i *InvoiceLogRepository) FindByField(value string) []*models.InvoiceLog {
 	filter := bson.M{
 		"invoiceNumber": value,
 	}
-	//var invoiceLog []models.InvoiceLog
 	cursor, err := i.collection.Find(context.Background(), filter)
 	if err != nil {
 		facades.Log().Error(err)
@@ -112,17 +108,21 @@ func (i *InvoiceLogRepository) FindByField(value string) []*models.InvoiceLog {
 		}
 	}(cursor, context.Background())
 	var invoiceLogs []*models.InvoiceLog
-	for cursor.Next(context.Background()) {
-		var invoiceLog models.InvoiceLog
-		if err := cursor.Decode(&invoiceLog); err != nil {
-			fmt.Println("Error decoding document:", err)
-			continue
-		}
-		invoiceLogs = append(invoiceLogs, &invoiceLog)
+	//for cursor.Next(context.Background()) {
+	//	var invoiceLog models.InvoiceLog
+	//	if err := cursor.Decode(&invoiceLog); err != nil {
+	//		fmt.Println("Error decoding document:", err)
+	//		continue
+	//	}
+	//	invoiceLogs = append(invoiceLogs, &invoiceLog)
+	//}
+	if err := cursor.All(context.Background(), &invoiceLogs); err != nil {
+		facades.Log().Error(err)
+		return nil
 	}
+
 	return invoiceLogs
 }
-
 func (i *InvoiceLogRepository) Delete(Id string) (*mongo.DeleteResult, error) {
 	id, err := primitive.ObjectIDFromHex(Id)
 	if err != nil {
@@ -135,7 +135,6 @@ func (i *InvoiceLogRepository) Delete(Id string) (*mongo.DeleteResult, error) {
 	}
 	return res, err
 }
-
 func (i *InvoiceLogRepository) Update(Id string, update map[string]interface{}) *models.InvoiceLog {
 	id, err := primitive.ObjectIDFromHex(Id)
 	if err != nil {

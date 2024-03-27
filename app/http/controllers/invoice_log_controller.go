@@ -45,8 +45,7 @@ func (r *InvoiceLog) Create(ctx http.Context) http.Response {
 }
 func (r *InvoiceLog) Index(ctx http.Context) http.Response {
 	page := ctx.Request().QueryInt64("page", 1)
-	invoiceLogRepository := repositories.NewInvoiceLogRepository()
-	invoiceLogs, totalRecord, totalPage, err := invoiceLogRepository.GetAll(page, 15)
+	invoiceLogs, totalRecord, totalPage, err := r.IR.GetAll(page, 15)
 	if err != nil {
 		facades.Log().Error(err)
 	}
@@ -66,8 +65,8 @@ func (r *InvoiceLog) Index(ctx http.Context) http.Response {
 }
 func (r *InvoiceLog) FindById(ctx http.Context) http.Response {
 	id := ctx.Request().Route("id")
-	invoiceLogRepository := repositories.NewInvoiceLogRepository()
-	result, err := invoiceLogRepository.FindById(id)
+	//invoiceLogRepository := repositories.NewInvoiceLogRepository()
+	result, err := r.IR.FindById(id)
 	if err != nil {
 		facades.Log().Error(err)
 		return nil
@@ -82,20 +81,20 @@ func (r *InvoiceLog) FindById(ctx http.Context) http.Response {
 }
 func (r *InvoiceLog) FindByField(ctx http.Context) http.Response {
 	invoiceLogRepository := repositories.NewInvoiceLogRepository()
-	invoiceLogs := invoiceLogRepository.FindByField("INV-SD-20230529257f72")
+	invoiceLogs := invoiceLogRepository.FindByField("INV-SD-20230525353352")
 	return ctx.Response().Json(http.StatusOK, http.Json{
 		"data": invoiceLogs,
 	})
 }
 func (r *InvoiceLog) Update(ctx http.Context) http.Response {
-	invoiceLogRepository := repositories.NewInvoiceLogRepository()
+	//invoiceLogRepository := repositories.NewInvoiceLogRepository()
 
 	var InvoiceLogs map[string]any
 	err := ctx.Request().Bind(&InvoiceLogs)
 	if err != nil {
 		facades.Log().Error(err)
 	}
-	invoiceLog := invoiceLogRepository.Update(ctx.Request().Route("id"), InvoiceLogs)
+	invoiceLog := r.IR.Update(ctx.Request().Route("id"), InvoiceLogs)
 	return ctx.Response().Json(http.StatusOK, http.Json{
 		"status": "OK",
 		"data":   InvoiceLogs,
@@ -103,8 +102,8 @@ func (r *InvoiceLog) Update(ctx http.Context) http.Response {
 	})
 }
 func (r *InvoiceLog) Delete(ctx http.Context) http.Response {
-	invoiceLogRepository := repositories.NewInvoiceLogRepository()
-	deleteResult, err := invoiceLogRepository.Delete(ctx.Request().Route("id"))
+	//invoiceLogRepository := repositories.NewInvoiceLogRepository()
+	deleteResult, err := r.IR.Delete(ctx.Request().Route("id"))
 	if err != nil {
 		facades.Log().Error(err)
 		return nil

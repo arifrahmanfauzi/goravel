@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"github.com/goravel/framework/facades"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -12,7 +13,18 @@ type OrderRepository struct {
 	collection *mongo.Collection
 }
 
-func NewOrderRepository(client *mongo.Client) *OrderRepository {
+func NewOrderRepository() *OrderRepository {
+	clientOptions := options.Client().ApplyURI(facades.Config().GetString("DB_STRING", ""))
+	// Connect to MongoDB
+	client, err := mongo.Connect(context.Background(), clientOptions)
+	if err != nil {
+		facades.Log().Error(err)
+	}
+	// Check the connection
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		facades.Log().Error(err)
+	}
 	return &OrderRepository{
 		collection: client.Database(models.CustomerOrder{}.DatabaseName()).Collection(models.CustomerOrder{}.CollectionName()),
 	}
@@ -48,7 +60,7 @@ func (or *OrderRepository) GetAll(page, pageSize int64, total *int64, totalPage 
 	defer func(cursor *mongo.Cursor, ctx context.Context) {
 		err := cursor.Close(ctx)
 		if err != nil {
-
+			facades.Log().Error(err)
 		}
 	}(cursor, ctx)
 

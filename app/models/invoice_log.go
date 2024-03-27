@@ -23,6 +23,7 @@ func (i *InvoiceLog) DatabaseName() string {
 }
 
 type InvoiceLogs interface {
+	Create(model *InvoiceLog) (*mongo.InsertOneResult, error)
 	GetAll(Page int64, PageSize int64) ([]*InvoiceLog, int64, int64, error)
 	FindById(Id string) (*InvoiceLog, error)
 	FindByField(value string) []*InvoiceLog

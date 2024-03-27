@@ -11,3 +11,6 @@ type Trip struct {
 func (tr *Trip) CollectionName() string {
 	return "customerTripPlanning"
 }
+func (tr *Trip) DatabaseName() string {
+	return "db_superkul_order"
+}
