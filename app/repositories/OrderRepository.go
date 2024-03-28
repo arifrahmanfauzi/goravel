@@ -32,7 +32,6 @@ func NewOrderRepository() *OrderRepository {
 
 func (or *OrderRepository) GetAll(page, pageSize int64, total *int64, totalPage *int64) ([]*models.CustomerOrder, error) {
 	ctx := context.Background()
-
 	// Calculate the number of documents to skip
 	skip := (page - 1) * pageSize
 

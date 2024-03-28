@@ -31,4 +31,5 @@ func Api() {
 	facades.Route().Delete("/invoice-log/{id}", controllers.NewInvoiceLogController().Delete)
 	facades.Route().Get("/invoice-log/invoiceNumber", controllers.NewInvoiceLogController().FindByField)
 	facades.Route().Get("/invoice-log", controllers.NewInvoiceLogController().Index)
+	facades.Route().Get("/corporate-invoice", controllers.NewCorporateInvoiceController().GetAll)
 }

@@ -42,7 +42,7 @@ func (r *TripController) Index(ctx http.Context) http.Response {
 	})
 }
 func (r *TripController) Find(ctx http.Context) http.Response {
-	trips := r.Repositories.FindTripByOrderNumber()
+	trips := r.Repositories.FindTripByOrderNumber(ctx.Request().Route("id"))
 	return ctx.Response().Json(http.StatusOK, http.Json{
 		"data": trips,
 	})

@@ -59,8 +59,8 @@ func init() {
 		//
 		// 32 character string, otherwise these encrypted strings
 		// will not be safe. Please do this before deploying an application!
-		"key": config.Env("APP_KEY", ""),
-
+		"key":        config.Env("APP_KEY", ""),
+		"pagination": config.Env("PAGINATION_LIMIT_DEFAULT", 15),
 		// Autoload service providers
 		//
 		// The service providers listed here will be automatically loaded on the

@@ -14,3 +14,10 @@ func (tr *Trip) CollectionName() string {
 func (tr *Trip) DatabaseName() string {
 	return "db_superkul_order"
 }
+
+type TripInterface interface {
+	Create(trip *Trip) error
+	FindByID(id string) (*Trip, error)
+	GetAll(page, pageSize int64, total *int64, totalPage *int64) ([]*Trip, error)
+	FindTripByOrderNumber(OrderNumber string) []*Trip
+}

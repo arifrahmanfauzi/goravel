@@ -26,7 +26,6 @@ func NewTripRepository() *TripRepository {
 	if err != nil {
 		facades.Log().Error(err)
 	}
-	facades.Log().Info("mongoDB has connected!")
 	trip := models.Trip{}
 	return &TripRepository{
 		collection: client.Database(trip.DatabaseName()).Collection(trip.CollectionName()),
@@ -51,7 +50,6 @@ func (tr *TripRepository) GetAll(page, pageSize int64, total *int64, totalPage *
 	skip := (page - 1) * pageSize
 	// Get total count of trips
 	totalRecord, err := tr.collection.CountDocuments(ctx, bson.M{})
-	facades.Log().Info(totalRecord)
 	if err != nil {
 		return nil, err
 	}
@@ -92,29 +90,20 @@ func (tr *TripRepository) GetAll(page, pageSize int64, total *int64, totalPage *
 
 	return trips, nil
 }
-func (tr *TripRepository) FindTripByOrderNumber() []*models.Trip {
+func (tr *TripRepository) FindTripByOrderNumber(OrderNumber string) []*models.Trip {
 	ctx := context.Background()
-	//lookupStage := bson.D{
-	//	{"$lookup",
-	//		bson.D{
-	//			{"from", "customerOrder"},
-	//			{"localField", "orderIdObject"},
-	//			{"foreignField", "_id"},
-	//			{"as", "cO"},
-	//		},
-	//	},
-	//}
-	pipeLine := bson.A{
-		bson.D{
-			{"$lookup",
-				bson.D{
-					{"from", "customerOrder"},
-					{"localField", "orderIdObject"},
-					{"foreignField", "_id"},
-					{"as", "cO"},
-				},
+	lookupStage := bson.D{
+		{"$lookup",
+			bson.D{
+				{"from", "customerOrder"},
+				{"localField", "orderIdObject"},
+				{"foreignField", "_id"},
+				{"as", "cO"},
 			},
 		},
+	}
+	pipeLine := bson.A{
+		lookupStage,
 		bson.D{
 			{"$unwind",
 				bson.D{
@@ -123,7 +112,7 @@ func (tr *TripRepository) FindTripByOrderNumber() []*models.Trip {
 				},
 			},
 		},
-		bson.D{{"$match", bson.D{{"cO.orderNumber", bson.D{{"$eq", "SD-2023070525b5f8"}}}}}},
+		bson.D{{"$match", bson.D{{"cO.orderNumber", bson.D{{"$eq", OrderNumber}}}}}},
 		bson.D{
 			{"$project",
 				bson.D{
@@ -151,10 +140,6 @@ func (tr *TripRepository) FindTripByOrderNumber() []*models.Trip {
 	var trips []*models.Trip
 	if err := cursor.All(ctx, &trips); err != nil {
 		facades.Log().Error(err)
-	}
-	if err != nil {
-		facades.Log().Error(err)
-		return nil
 	}
 	return trips
 }
