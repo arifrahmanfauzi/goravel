@@ -39,7 +39,7 @@ func paginate(Page int64, TotalRecord int64, PageSize int64) (int64, int64) {
 	skip := (Page - 1) * PageSize
 	return skip, totalPages
 }
-func (c CorporateInvoiceRepository) GetAll(Page int64, Limit int64, InvoiceNumber string) ([]*models.CorporateInvoice, *transformers.Pagination) {
+func (c *CorporateInvoiceRepository) GetAll(Page int64, Limit int64, InvoiceNumber string) ([]*models.CorporateInvoice, *transformers.Pagination) {
 	ctx := context.Background()
 	var pipeline interface{}
 	if InvoiceNumber == "" {
@@ -47,7 +47,7 @@ func (c CorporateInvoiceRepository) GetAll(Page int64, Limit int64, InvoiceNumbe
 	} else {
 		pipeline = bson.D{{"invoiceNumber", bson.D{{"$regex", primitive.Regex{Pattern: InvoiceNumber}}}}}
 	}
-	TotalRecord, _ := c.collection.CountDocuments(ctx, pipeline)
+	TotalRecord, err := c.collection.CountDocuments(ctx, pipeline)
 	Skip, totalPages := paginate(Page, TotalRecord, int64(facades.Config().GetInt("app.pagination", 15)))
 	cursor, err := c.collection.Find(ctx, pipeline, &options.FindOptions{
 		Skip:  &Skip,

@@ -21,7 +21,7 @@ func Api() {
 	facades.Route().Get("/trips", tripController.Index)
 	facades.Route().Get("/trips/{id}", tripController.Find)
 	facades.Route().Get("/orders", orderController.GetAll)
-	facades.Route().Get("/drops", controllers.NewDropController().Index)
+	facades.Route().Get("/drops", controllers.NewDropController().GetAll)
 	facades.Route().Get("/drops/{id}", controllers.NewDropController().Find)
 	facades.Route().Patch("/drops/{id}", controllers.NewDropController().Update)
 	facades.Route().Delete("/drops/{id}", controllers.NewDropController().Delete)

@@ -7,7 +7,10 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"goravel/app/helpers"
 	"goravel/app/models"
+	"goravel/app/transformers"
+	"time"
 )
 
 type DropRepository struct {
@@ -214,4 +217,176 @@ func (Drop *DropRepository) FindByTripNumber(TripNumber string, Page int64, Page
 		return nil, totalRecord, totalPage, err
 	}
 	return Drops, totalRecord, totalPage, nil
+}
+func (Drop *DropRepository) FindByTripStatus(TripStatus string, Page int, Limit int) ([]*models.Drop, *transformers.Pagination) {
+	opts := options.Aggregate().SetMaxTime(10 * time.Second)
+	pipeline := mongo.Pipeline{
+		bson.D{{"$project", bson.D{{"cDT", "$$ROOT"}, {"_id", 0}}}},
+		bson.D{{"$lookup", bson.D{{"localField", "cDT.tripIdObject"}, {"from", "customerTripPlanning"}, {"foreignField", "_id"}, {"as", "cTP"}}}},
+		bson.D{{"$unwind", bson.D{{"path", "$cTP"}, {"preserveNullAndEmptyArrays", false}}}},
+		bson.D{{"$match", bson.D{{"cTP.tripStatus", bson.D{{"$regex", primitive.Regex{Pattern: TripStatus}}}}}}},
+		bson.D{{"$replaceRoot", bson.D{{"newRoot", bson.D{{"$mergeObjects", bson.A{"$cDT", "$cTP", "$$ROOT"}}}}}}},
+		bson.D{{"$project", bson.D{{"cDT", 0}, {"cTP", 0}}}},
+	}
+
+	cursor, err := Drop.collection.Aggregate(context.Background(), pipeline, opts)
+	if err != nil {
+		facades.Log().Error(err)
+		return nil, nil
+	}
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			facades.Log().Error(err)
+		}
+	}(cursor, context.Background())
+
+	var drops []*models.Drop
+	if err := cursor.All(context.Background(), &drops); err != nil {
+		facades.Log().Error(err)
+		return nil, nil
+	}
+
+	total := len(drops)
+	Skip, TotalPages := helpers.Paginate(Page, total, Limit)
+
+	pipeline = append(pipeline, bson.D{{"$limit", int64(Limit)}}, bson.D{{"$skip", int64(Skip)}})
+
+	cursor, err = Drop.collection.Aggregate(context.Background(), pipeline, opts)
+	if err != nil {
+		facades.Log().Error(err)
+		return nil, nil
+	}
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			facades.Log().Error(err)
+		}
+	}(cursor, context.Background())
+
+	drops = []*models.Drop{}
+	if err := cursor.All(context.Background(), &drops); err != nil {
+		facades.Log().Error(err)
+		return nil, nil
+	}
+
+	pagination := &transformers.Pagination{
+		Total:       int64(total),
+		Count:       int64(Limit),
+		PerPage:     int64(Limit),
+		TotalPages:  int64(TotalPages),
+		CurrentPage: int64(Page),
+	}
+
+	return drops, pagination
+}
+func (Drop *DropRepository) FetchFilter(TripStatus string, AssignType string, distance int) ([]*models.Drop, *transformers.Pagination) {
+	opts := options.Aggregate().SetMaxTime(10 * time.Second)
+	var filter bson.A
+	if TripStatus != "" {
+		filter = append(filter, bson.D{{"cTP.tripStatus", bson.D{{"$eq", "Mencari Driver"}}}})
+	}
+	if AssignType != "" {
+		filter = append(filter, bson.D{{"cTP.assignType", bson.D{{"$eq", "Manual Assign"}}}})
+	}
+	if distance != 0 {
+		search := bson.A{
+			bson.D{
+				{
+					"cTP.distance", bson.D{
+						{
+							"$eq", 18,
+						},
+					},
+				},
+			},
+			bson.D{
+				{
+					"cTP.distance", bson.D{
+						{
+							"$eq", 20,
+						},
+					},
+				},
+			},
+		}
+		filter = bson.A{
+			bson.D{{"$and", filter}},
+			bson.D{{"$or", search}},
+		}
+	}
+	match := bson.D{
+		{"$match",
+			bson.D{
+				{"$and",
+					filter,
+				},
+			},
+		},
+	}
+	pipeline := mongo.Pipeline{
+		bson.D{
+			{"$project",
+				bson.D{
+					{"customerTripPlanningDt", "$$ROOT"},
+					{"_id", 0},
+				},
+			},
+		},
+		bson.D{
+			{"$lookup",
+				bson.D{
+					{"localField", "customerTripPlanningDt.tripIdObject"},
+					{"from", "customerTripPlanning"},
+					{"foreignField", "_id"},
+					{"as", "cTP"},
+				},
+			},
+		},
+		bson.D{
+			{"$unwind",
+				bson.D{
+					{"path", "$cTP"},
+					{"preserveNullAndEmptyArrays", false},
+				},
+			},
+		},
+		match,
+		bson.D{
+			{"$replaceRoot",
+				bson.D{
+					{"newRoot",
+						bson.D{
+							{"$mergeObjects",
+								bson.A{
+									"$customerTripPlanningDt",
+									"$cTP",
+									"$$ROOT",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		bson.D{
+			{"$project",
+				bson.D{
+					{"customerTripPlanningDt", 0},
+					{"cTP", 0},
+				},
+			},
+		},
+	}
+	cursor, err := Drop.collection.Aggregate(context.Background(), pipeline, opts)
+	if err != nil {
+		facades.Log().Error(err)
+		return nil, nil
+	}
+	var Drops []*models.Drop
+	if err := cursor.All(context.Background(), &Drops); err != nil {
+		facades.Log().Error(err)
+	}
+	facades.Log().Info("Length", len(Drops))
+	return Drops, nil
 }

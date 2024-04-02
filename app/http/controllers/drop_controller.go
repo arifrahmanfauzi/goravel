@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/goravel/framework/contracts/http"
 	"github.com/goravel/framework/facades"
+	"goravel/app/models"
 	"goravel/app/repositories"
 	"goravel/app/transformers"
 )
@@ -107,6 +108,40 @@ func (r *DropController) Find(ctx http.Context) http.Response {
 				CurrentPage: page,
 				TotalPages:  totalPage,
 			},
+		},
+	})
+}
+
+//func (r *DropController) GetAll(ctx http.Context) http.Response {
+//	tripStatus := ctx.Request().Query("trip_status", "")
+//	var Pages = ctx.Request().QueryInt("page", 1)
+//	var Limit = ctx.Request().QueryInt("limit", facades.Config().GetInt("app.pagination", 15))
+//	var drops []*models.Drop
+//	var pagination *transformers.Pagination = nil
+//	if tripStatus != "" {
+//		drops, pagination = r.Repositories.FindByTripStatus(tripStatus, Pages, Limit)
+//	}
+//	return ctx.Response().Json(http.StatusOK, http.Json{
+//		"data": drops,
+//		"meta": map[string]any{
+//			"pagination": pagination,
+//		},
+//	})
+//}
+
+func (r *DropController) GetAll(ctx http.Context) http.Response {
+	tripStatus := ctx.Request().Query("trip_status", "Mencari Driver")
+	assignType := ctx.Request().Query("assign_type", "Manual Assign")
+	distance := ctx.Request().QueryInt("distance", 0)
+	//var Pages = ctx.Request().QueryInt("page", 1)
+	//var Limit = ctx.Request().QueryInt("limit", facades.Config().GetInt("app.pagination", 15))
+	var drops []*models.Drop
+	var pagination *transformers.Pagination = nil
+	drops, pagination = r.Repositories.FetchFilter(tripStatus, assignType, distance)
+	return ctx.Response().Json(http.StatusOK, http.Json{
+		"data": drops,
+		"meta": map[string]any{
+			"pagination": pagination,
 		},
 	})
 }
