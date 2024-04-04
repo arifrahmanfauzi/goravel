@@ -1,10 +1,18 @@
 package helpers
 
+// Paginate is helper to produce pagination
+// Page int is current page
+//
+//	TotalRecord int is total a whole document which has been query
+//
+// PageSize int is Limit number of document to display
 func Paginate(Page int, TotalRecord int, PageSize int) (int, int) {
-	totalPages := TotalRecord / PageSize
+	//Calculate total Pages from count record
+	TotalPages := TotalRecord / PageSize
 	if TotalRecord%PageSize != 0 {
-		totalPages++
+		TotalPages++
 	}
-	skip := (Page - 1) * PageSize
-	return skip, totalPages
+	//Calculate Number of Document to skip
+	NumberOfDocumentSkip := (Page - 1) * PageSize
+	return NumberOfDocumentSkip, TotalPages
 }

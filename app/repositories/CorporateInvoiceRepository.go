@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"goravel/app/helpers"
 	"goravel/app/models"
 	"goravel/app/transformers"
 )
@@ -31,14 +32,6 @@ func NewCorporateInvoiceRepository() *CorporateInvoiceRepository {
 		collection: client.Database(models.CorporateInvoice{}.DatabaseName()).Collection(models.CorporateInvoice{}.CollectionName()),
 	}
 }
-func paginate(Page int64, TotalRecord int64, PageSize int64) (int64, int64) {
-	totalPages := TotalRecord / PageSize
-	if TotalRecord%PageSize != 0 {
-		totalPages++
-	}
-	skip := (Page - 1) * PageSize
-	return skip, totalPages
-}
 func (c *CorporateInvoiceRepository) GetAll(Page int64, Limit int64, InvoiceNumber string) ([]*models.CorporateInvoice, *transformers.Pagination) {
 	ctx := context.Background()
 	var pipeline interface{}
@@ -48,9 +41,10 @@ func (c *CorporateInvoiceRepository) GetAll(Page int64, Limit int64, InvoiceNumb
 		pipeline = bson.D{{"invoiceNumber", bson.D{{"$regex", primitive.Regex{Pattern: InvoiceNumber}}}}}
 	}
 	TotalRecord, err := c.collection.CountDocuments(ctx, pipeline)
-	Skip, totalPages := paginate(Page, TotalRecord, int64(facades.Config().GetInt("app.pagination", 15)))
+	Skip, totalPages := helpers.Paginate(int(Page), int(TotalRecord), facades.Config().GetInt("app.pagination", 15))
+	skip := int64(Skip)
 	cursor, err := c.collection.Find(ctx, pipeline, &options.FindOptions{
-		Skip:  &Skip,
+		Skip:  &skip,
 		Limit: &Limit,
 	})
 	if err != nil {
@@ -63,7 +57,7 @@ func (c *CorporateInvoiceRepository) GetAll(Page int64, Limit int64, InvoiceNumb
 	pagination := &transformers.Pagination{
 		Total:       TotalRecord,
 		CurrentPage: Page,
-		TotalPages:  totalPages,
+		TotalPages:  int64(totalPages),
 		PerPage:     Limit,
 		Count:       int64(facades.Config().GetInt("app.pagination", 15)),
 	}

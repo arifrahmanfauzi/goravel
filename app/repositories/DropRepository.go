@@ -2,15 +2,16 @@ package repositories
 
 import (
 	"context"
+	"goravel/app/helpers"
+	"goravel/app/models"
+	"goravel/app/transformers"
+	"time"
+
 	"github.com/goravel/framework/facades"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"goravel/app/helpers"
-	"goravel/app/models"
-	"goravel/app/transformers"
-	"time"
 )
 
 type DropRepository struct {
@@ -280,7 +281,7 @@ func (Drop *DropRepository) FindByTripStatus(TripStatus string, Page int, Limit 
 
 	return drops, pagination
 }
-func (Drop *DropRepository) FetchFilter(TripStatus string, AssignType string, distance int) ([]*models.Drop, *transformers.Pagination) {
+func (Drop *DropRepository) FetchFilter(TripStatus string, AssignType string, distance int, Page int, Limit int) ([]*models.Drop, *transformers.Pagination) {
 	opts := options.Aggregate().SetMaxTime(10 * time.Second)
 	var filter bson.A
 	if TripStatus != "" {
@@ -315,6 +316,32 @@ func (Drop *DropRepository) FetchFilter(TripStatus string, AssignType string, di
 			bson.D{{"$or", search}},
 		}
 	}
+	rootStage := bson.D{
+		{"$project",
+			bson.D{
+				{"customerTripPlanningDt", "$$ROOT"},
+				{"_id", 0},
+			},
+		},
+	}
+	lookUpStage := bson.D{
+		{"$lookup",
+			bson.D{
+				{"localField", "customerTripPlanningDt.tripIdObject"},
+				{"from", "customerTripPlanning"},
+				{"foreignField", "_id"},
+				{"as", "cTP"},
+			},
+		},
+	}
+	unwindStage := bson.D{
+		{"$unwind",
+			bson.D{
+				{"path", "$cTP"},
+				{"preserveNullAndEmptyArrays", false},
+			},
+		},
+	}
 	match := bson.D{
 		{"$match",
 			bson.D{
@@ -324,61 +351,55 @@ func (Drop *DropRepository) FetchFilter(TripStatus string, AssignType string, di
 			},
 		},
 	}
-	pipeline := mongo.Pipeline{
-		bson.D{
-			{"$project",
-				bson.D{
-					{"customerTripPlanningDt", "$$ROOT"},
-					{"_id", 0},
-				},
-			},
-		},
-		bson.D{
-			{"$lookup",
-				bson.D{
-					{"localField", "customerTripPlanningDt.tripIdObject"},
-					{"from", "customerTripPlanning"},
-					{"foreignField", "_id"},
-					{"as", "cTP"},
-				},
-			},
-		},
-		bson.D{
-			{"$unwind",
-				bson.D{
-					{"path", "$cTP"},
-					{"preserveNullAndEmptyArrays", false},
-				},
-			},
-		},
-		match,
-		bson.D{
-			{"$replaceRoot",
-				bson.D{
-					{"newRoot",
-						bson.D{
-							{"$mergeObjects",
-								bson.A{
-									"$customerTripPlanningDt",
-									"$cTP",
-									"$$ROOT",
-								},
+	replaceStage := bson.D{
+		{"$replaceRoot",
+			bson.D{
+				{"newRoot",
+					bson.D{
+						{"$mergeObjects",
+							bson.A{
+								"$customerTripPlanningDt",
+								"$cTP",
+								"$$ROOT",
 							},
 						},
 					},
 				},
 			},
 		},
-		bson.D{
-			{"$project",
-				bson.D{
-					{"customerTripPlanningDt", 0},
-					{"cTP", 0},
-				},
+	}
+	projectionStage := bson.D{
+		{"$project",
+			bson.D{
+				{"customerTripPlanningDt", 0},
+				{"cTP", 0},
 			},
 		},
 	}
-	cursor, err := Drop.collection.Aggregate(context.Background(), pipeline, opts)
+	countStage := bson.D{{"$count", "count"}}
+	limitStage := bson.D{{"$limit", Limit}}
+	sortStage := bson.D{{"$sort", bson.D{{"created_at", -1}}}}
+	countCursor, err := Drop.collection.Aggregate(context.Background(), mongo.Pipeline{rootStage, lookUpStage, unwindStage, match, countStage})
+	var countRecord []bson.M
+	if err = countCursor.All(context.Background(), &countRecord); err != nil {
+		facades.Log().Error(err)
+	}
+	facades.Log().Debug(countRecord)
+	Skip, TotalPages := helpers.Paginate(Page, int(countRecord[0]["count"].(int32)), Limit)
+	skipStage := bson.D{{"$skip", Skip}}
+	defer func(countCursor *mongo.Cursor, ctx context.Context) {
+		err := countCursor.Close(ctx)
+		if err != nil {
+			facades.Log().Error(err)
+		}
+	}(countCursor, context.Background())
+	cursor, err := Drop.collection.Aggregate(context.Background(), mongo.Pipeline{rootStage, lookUpStage, unwindStage, match, replaceStage, projectionStage, skipStage, limitStage, sortStage}, opts)
+	defer func(cursor *mongo.Cursor, ctx context.Context) {
+		err := cursor.Close(ctx)
+		if err != nil {
+			facades.Log().Error()
+		}
+	}(cursor, context.Background())
 	if err != nil {
 		facades.Log().Error(err)
 		return nil, nil
@@ -387,6 +408,12 @@ func (Drop *DropRepository) FetchFilter(TripStatus string, AssignType string, di
 	if err := cursor.All(context.Background(), &Drops); err != nil {
 		facades.Log().Error(err)
 	}
-	facades.Log().Info("Length", len(Drops))
-	return Drops, nil
+	Pagination := &transformers.Pagination{
+		Total:       int64(countRecord[0]["count"].(int32)),
+		Count:       int64(Limit),
+		PerPage:     int64(Limit),
+		TotalPages:  int64(TotalPages),
+		CurrentPage: int64(Page),
+	}
+	return Drops, Pagination
 }

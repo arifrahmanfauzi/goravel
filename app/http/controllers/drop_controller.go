@@ -133,11 +133,11 @@ func (r *DropController) GetAll(ctx http.Context) http.Response {
 	tripStatus := ctx.Request().Query("trip_status", "Mencari Driver")
 	assignType := ctx.Request().Query("assign_type", "Manual Assign")
 	distance := ctx.Request().QueryInt("distance", 0)
-	//var Pages = ctx.Request().QueryInt("page", 1)
-	//var Limit = ctx.Request().QueryInt("limit", facades.Config().GetInt("app.pagination", 15))
+	var Pages = ctx.Request().QueryInt("page", 1)
+	var Limit = ctx.Request().QueryInt("limit", facades.Config().GetInt("app.pagination", 15))
 	var drops []*models.Drop
 	var pagination *transformers.Pagination = nil
-	drops, pagination = r.Repositories.FetchFilter(tripStatus, assignType, distance)
+	drops, pagination = r.Repositories.FetchFilter(tripStatus, assignType, distance, Pages, Limit)
 	return ctx.Response().Json(http.StatusOK, http.Json{
 		"data": drops,
 		"meta": map[string]any{
