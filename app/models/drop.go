@@ -9,19 +9,12 @@ type Drop struct {
 	DispatchNumber string `bson:"dispatchNumber,omitempty"`
 }
 
-<<<<<<< HEAD
 func (Drop Drop) CollectionName() string {
 	return "customerTripPlanningDt"
 }
 func (Drop Drop) DatabaseName() string {
 	return "db_superkul_order"
-=======
-func (dop *Drop) CollectionName() string {
-	return "customerTripPlanningDt"
-}
-func (dop *Drop) DatabaseName() string {
-	return "db_superkul_order_test"
->>>>>>> origin/main
+
 }
 
 type DropInterface interface {
